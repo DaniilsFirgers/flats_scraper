@@ -1,7 +1,8 @@
+use super::structs::Flat;
 use reqwest::StatusCode;
 use scraper::{Html, Selector};
 
-const MAIN_URL: &str = "https://www.ss.com/en/real-estate/flats/riga/centre/";
+const MAIN_URL: &str = "https://www.ss.com/en/real-estate/flats/riga/centre/sell/";
 
 pub async fn parse_list_of_districts() {
     let client = reqwest::Client::new();
@@ -24,8 +25,38 @@ pub async fn parse_list_of_districts() {
             if index == 0 || index == num_rows - 1 {
                 continue; // Skip the first and last rows
             }
-            let inner = tr_element.inner_html().to_string();
-            println!("Some data: {}", &inner);
+
+            // Select the <td> elements inside the current <tr>
+            let td_selector = Selector::parse("td").unwrap();
+
+            let mut flat = Flat::new();
+
+            for (index, td_element) in tr_element.select(&td_selector).enumerate() {
+                // Check if the <td> element contains an <a> element
+                if index == 0 || index == 1 {
+                    continue;
+                }
+                let field = td_element.text().collect::<String>().trim().to_string();
+
+                if index == 2 {
+                    flat.set_description(field);
+                } else if index == 3 {
+                    flat.set_street(field);
+                } else if index == 4 {
+                    flat.set_rooms(field);
+                } else if index == 5 {
+                    flat.set_square(field);
+                } else if index == 6 {
+                    flat.set_floor(field);
+                } else if index == 7 {
+                    flat.set_series(field);
+                } else if index == 8 {
+                    flat.set_square_m_price(field);
+                } else if index == 9 {
+                    flat.set_price(field);
+                }
+            }
+            println!("{:?}", flat);
         }
     }
 }
