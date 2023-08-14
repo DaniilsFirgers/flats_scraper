@@ -1,10 +1,14 @@
 use super::structs::Flat;
 use reqwest::StatusCode;
 use scraper::{Html, Selector};
+use std::fs::File;
+use std::fs::{self};
+use std::io::{BufWriter, Write};
 
 const MAIN_URL: &str = "https://www.ss.com/en/real-estate/flats/riga/centre/sell/";
 
 pub async fn parse_list_of_districts() {
+    let mut flats: Vec<Flat> = Vec::new();
     let client = reqwest::Client::new();
     let mut res = client.get(MAIN_URL).send().await.unwrap();
 
@@ -29,14 +33,19 @@ pub async fn parse_list_of_districts() {
             // Select the <td> elements inside the current <tr>
             let td_selector = Selector::parse("td").unwrap();
 
-            let mut flat = Flat::new();
+            let mut flat: Flat = Flat::new();
 
             for (index, td_element) in tr_element.select(&td_selector).enumerate() {
                 // Check if the <td> element contains an <a> element
                 if index == 0 || index == 1 {
                     continue;
                 }
-                let field = td_element.text().collect::<String>().trim().to_string();
+                let field = td_element
+                    .text()
+                    .collect::<String>()
+                    .trim()
+                    .to_string()
+                    .replace("\n", ".");
 
                 if index == 2 {
                     flat.set_description(field);
@@ -56,7 +65,23 @@ pub async fn parse_list_of_districts() {
                     flat.set_price(field);
                 }
             }
-            println!("{:?}", flat);
+            flats.push(flat);
+            println!("{:?}", flats);
         }
     }
+    let saved_json = save_to_local_json_file(flats);
+    match saved_json {
+        Ok(_) => println!("Saved to local json file"),
+        Err(e) => println!("Error saving to local json file: {}", e),
+    }
+}
+
+fn save_to_local_json_file(flat_data: Vec<Flat>) -> Result<(), Box<dyn std::error::Error>> {
+    // Create the directory if it doesn't exist
+    fs::create_dir_all("scraper/data")?;
+    let file = File::create("scraper/data/data.json")?;
+    let mut writer = BufWriter::new(file);
+    serde_json::to_writer(&mut writer, &flat_data)?;
+    writer.flush()?;
+    Ok(())
 }
