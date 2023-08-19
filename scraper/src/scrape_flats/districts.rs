@@ -9,94 +9,102 @@ const MAIN_URL: &str = "https://www.ss.com/en/real-estate/flats/riga/centre/sell
 
 pub async fn parse_list_of_districts() {
     let mut count = 0u32;
-    let mut flats: Vec<Flat> = Vec::new();
+    let reached_end = false;
     let client = reqwest::Client::new();
-    let mut res = client.get(MAIN_URL).send().await.unwrap();
 
-    let raw_html = match res.status() {
-        StatusCode::OK => res.text().await.unwrap(),
-        _ => panic!("Something went wrong"),
-    };
-    let document = Html::parse_document(&raw_html);
-    let main_table_selector = Selector::parse("form#filter_frm>table>tbody").unwrap();
-    let main_pages_selector = Selector::parse("form#filter_frm div.td2").unwrap();
-    let individual_page_index_selector = Selector::parse("a").unwrap();
-
-    let first_main_pages_selector = document.select(&main_pages_selector).next().unwrap();
-
-    // Iterate over all the pages
-    let mut pages_iterator = first_main_pages_selector
-        .select(&individual_page_index_selector)
-        .enumerate()
-        .peekable();
-
-    while let Some((index, page)) = pages_iterator.next() {
-        if index == 0 {
-            continue; // Skip the first iteration
+    loop {
+        if reached_end {
+            break;
         }
 
-        let text = page.text().collect::<String>();
+        let mut flats: Vec<Flat> = Vec::new();
+        let mut res = client.get(MAIN_URL).send().await.unwrap();
 
-        if pages_iterator.peek().is_none() {
-            break; // Stop the loop before the last iteration
-        }
+        let raw_html = match res.status() {
+            StatusCode::OK => res.text().await.unwrap(),
+            _ => panic!("Something went wrong"),
+        };
+        let document = Html::parse_document(&raw_html);
+        let main_table_selector = Selector::parse("form#filter_frm>table>tbody").unwrap();
+        let main_pages_selector = Selector::parse("form#filter_frm div.td2").unwrap();
+        let individual_page_index_selector = Selector::parse("a").unwrap();
 
-        println!("Page: {}", text);
-    }
-    // Select the second tbody element (index 1)
-    if let Some(tbody_element) = document.select(&main_table_selector).nth(1) {
-        let tr_selector = Selector::parse("tr").unwrap();
-        let tr_elements = tbody_element.select(&tr_selector).collect::<Vec<_>>();
+        let first_main_pages_selector = document.select(&main_pages_selector).next().unwrap();
 
-        // Iterate through rows (tr elements) starting from index 1
-        for (index, tr_element) in tr_elements.iter().enumerate() {
-            let num_rows = tr_elements.len();
-            if index == 0 || index == num_rows - 1 {
-                continue; // Skip the first and last rows
+        // Iterate over all the pages
+        let mut pages_iterator = first_main_pages_selector
+            .select(&individual_page_index_selector)
+            .enumerate()
+            .peekable();
+
+        while let Some((index, page)) = pages_iterator.next() {
+            if index == 0 {
+                continue; // Skip the first iteration
             }
 
-            // Select the <td> elements inside the current <tr>
-            let td_selector = Selector::parse("td").unwrap();
+            let text = page.text().collect::<String>();
 
-            let mut flat: Flat = Flat::new();
-
-            for (index, td_element) in tr_element.select(&td_selector).enumerate() {
-                // Check if the <td> element contains an <a> element
-                if index == 0 || index == 1 {
-                    continue;
-                }
-                let field = td_element
-                    .text()
-                    .collect::<String>()
-                    .trim()
-                    .to_string()
-                    .replace("\n", ".");
-
-                if index == 2 {
-                    flat.set_description(field);
-                } else if index == 3 {
-                    flat.set_street(field);
-                } else if index == 4 {
-                    flat.set_rooms(field);
-                } else if index == 5 {
-                    flat.set_square(field);
-                } else if index == 6 {
-                    flat.set_floor(field);
-                } else if index == 7 {
-                    flat.set_series(field);
-                } else if index == 8 {
-                    flat.set_square_m_price(field);
-                } else if index == 9 {
-                    flat.set_price(field);
-                }
+            if pages_iterator.peek().is_none() {
+                break; // Stop the loop before the last iteration
             }
-            flats.push(flat);
+
+            println!("Page: {}", text);
         }
-    }
-    let saved_json = save_to_local_json_file(flats);
-    match saved_json {
-        Ok(_) => println!("Saved to local json file"),
-        Err(e) => println!("Error saving to local json file: {}", e),
+        // Select the second tbody element (index 1)
+        if let Some(tbody_element) = document.select(&main_table_selector).nth(1) {
+            let tr_selector = Selector::parse("tr").unwrap();
+            let tr_elements = tbody_element.select(&tr_selector).collect::<Vec<_>>();
+
+            // Iterate through rows (tr elements) starting from index 1
+            for (index, tr_element) in tr_elements.iter().enumerate() {
+                let num_rows = tr_elements.len();
+                if index == 0 || index == num_rows - 1 {
+                    continue; // Skip the first and last rows
+                }
+
+                // Select the <td> elements inside the current <tr>
+                let td_selector = Selector::parse("td").unwrap();
+
+                let mut flat: Flat = Flat::new();
+
+                for (index, td_element) in tr_element.select(&td_selector).enumerate() {
+                    // Check if the <td> element contains an <a> element
+                    if index == 0 || index == 1 {
+                        continue;
+                    }
+                    let field = td_element
+                        .text()
+                        .collect::<String>()
+                        .trim()
+                        .to_string()
+                        .replace("\n", ".");
+
+                    if index == 2 {
+                        flat.set_description(field);
+                    } else if index == 3 {
+                        flat.set_street(field);
+                    } else if index == 4 {
+                        flat.set_rooms(field);
+                    } else if index == 5 {
+                        flat.set_square(field);
+                    } else if index == 6 {
+                        flat.set_floor(field);
+                    } else if index == 7 {
+                        flat.set_series(field);
+                    } else if index == 8 {
+                        flat.set_square_m_price(field);
+                    } else if index == 9 {
+                        flat.set_price(field);
+                    }
+                }
+                flats.push(flat);
+            }
+        }
+        let saved_json = save_to_local_json_file(flats);
+        match saved_json {
+            Ok(_) => println!("Saved to local json file"),
+            Err(e) => println!("Error saving to local json file: {}", e),
+        }
     }
 }
 
