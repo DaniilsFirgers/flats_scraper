@@ -8,6 +8,7 @@ use std::io::{BufWriter, Write};
 const MAIN_URL: &str = "https://www.ss.com/en/real-estate/flats/riga/centre/sell/";
 
 pub async fn parse_list_of_districts() {
+    let mut count = 0u32;
     let mut flats: Vec<Flat> = Vec::new();
     let client = reqwest::Client::new();
     let mut res = client.get(MAIN_URL).send().await.unwrap();
@@ -17,9 +18,33 @@ pub async fn parse_list_of_districts() {
         _ => panic!("Something went wrong"),
     };
     let document = Html::parse_document(&raw_html);
-    let selector = Selector::parse("form#filter_frm>table>tbody").unwrap();
+    let main_table_selector = Selector::parse("form#filter_frm>table>tbody").unwrap();
+    let main_pages_selector = Selector::parse("form#filter_frm div.td2").unwrap();
+    let individual_page_index_selector = Selector::parse("a").unwrap();
+
+    let first_main_pages_selector = document.select(&main_pages_selector).next().unwrap();
+
+    // Iterate over all the pages
+    let mut pages_iterator = first_main_pages_selector
+        .select(&individual_page_index_selector)
+        .enumerate()
+        .peekable();
+
+    while let Some((index, page)) = pages_iterator.next() {
+        if index == 0 {
+            continue; // Skip the first iteration
+        }
+
+        let text = page.text().collect::<String>();
+
+        if pages_iterator.peek().is_none() {
+            break; // Stop the loop before the last iteration
+        }
+
+        println!("Page: {}", text);
+    }
     // Select the second tbody element (index 1)
-    if let Some(tbody_element) = document.select(&selector).nth(1) {
+    if let Some(tbody_element) = document.select(&main_table_selector).nth(1) {
         let tr_selector = Selector::parse("tr").unwrap();
         let tr_elements = tbody_element.select(&tr_selector).collect::<Vec<_>>();
 
@@ -66,7 +91,6 @@ pub async fn parse_list_of_districts() {
                 }
             }
             flats.push(flat);
-            println!("{:?}", flats);
         }
     }
     let saved_json = save_to_local_json_file(flats);
