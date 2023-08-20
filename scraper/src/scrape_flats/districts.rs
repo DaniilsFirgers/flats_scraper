@@ -5,20 +5,22 @@ use std::fs::File;
 use std::fs::{self};
 use std::io::{BufWriter, Write};
 
-const MAIN_URL: &str = "https://www.ss.com/en/real-estate/flats/riga/centre/sell/";
-
 pub async fn parse_list_of_districts() {
-    let mut count = 0u32;
-    let reached_end = false;
+    let mut last_page: i32 = 0;
+    let mut page_number = 1;
+    let mut reached_end = false;
     let client = reqwest::Client::new();
+    let mut flats: Vec<Flat> = Vec::new();
 
     loop {
         if reached_end {
             break;
         }
+        let base_url: &str = "https://www.ss.com/en/real-estate/flats/riga/centre/sell/page";
 
-        let mut flats: Vec<Flat> = Vec::new();
-        let mut res = client.get(MAIN_URL).send().await.unwrap();
+        let main_url = format!("{}{}.html", base_url, page_number);
+        // println!("Page number: {} - {}", page_number, last_page);
+        let mut res = client.get(main_url).send().await.unwrap();
 
         let raw_html = match res.status() {
             StatusCode::OK => res.text().await.unwrap(),
@@ -37,18 +39,29 @@ pub async fn parse_list_of_districts() {
             .enumerate()
             .peekable();
 
+        let mut pen_ultimate_page: i32 = 0;
+
         while let Some((index, page)) = pages_iterator.next() {
             if index == 0 {
                 continue; // Skip the first iteration
             }
 
-            let text = page.text().collect::<String>();
+            let page_string: String = page.text().collect::<String>();
+
+            let page_numeric = match parse_string_to_int(page_string) {
+                Ok(value) => value,
+                Err(_) => pen_ultimate_page,
+            };
 
             if pages_iterator.peek().is_none() {
+                if pen_ultimate_page < last_page {
+                    reached_end = true;
+                    break;
+                }
+                last_page = pen_ultimate_page;
                 break; // Stop the loop before the last iteration
             }
-
-            println!("Page: {}", text);
+            pen_ultimate_page = page_numeric;
         }
         // Select the second tbody element (index 1)
         if let Some(tbody_element) = document.select(&main_table_selector).nth(1) {
@@ -100,11 +113,12 @@ pub async fn parse_list_of_districts() {
                 flats.push(flat);
             }
         }
-        let saved_json = save_to_local_json_file(flats);
-        match saved_json {
-            Ok(_) => println!("Saved to local json file"),
-            Err(e) => println!("Error saving to local json file: {}", e),
-        }
+        page_number += 1;
+    }
+    let saved_json = save_to_local_json_file(flats);
+    match saved_json {
+        Ok(_) => println!("Saved to local json file"),
+        Err(e) => println!("Error saving to local json file: {}", e),
     }
 }
 
@@ -116,4 +130,10 @@ fn save_to_local_json_file(flat_data: Vec<Flat>) -> Result<(), Box<dyn std::erro
     serde_json::to_writer(&mut writer, &flat_data)?;
     writer.flush()?;
     Ok(())
+}
+
+fn parse_string_to_int(string_value: String) -> Result<i32, Box<dyn std::error::Error>> {
+    let parsed_i32: i32 = string_value.parse()?;
+
+    Ok(parsed_i32)
 }
