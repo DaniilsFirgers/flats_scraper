@@ -5,8 +5,11 @@ use tokio;
 
 #[tokio::main]
 async fn main() {
+    districts::DISTRICTS.iter().for_each(|district| {
+        println!("{}", district);
+    });
     let start_time = Instant::now();
-    districts::parse_list_of_districts().await;
+    flats::parse_flats().await;
     let end_time = Instant::now();
     let elapsed_time = end_time - start_time;
 
