@@ -5,7 +5,7 @@ use std::fs::File;
 use std::fs::{self};
 use std::io::{BufWriter, Write};
 
-pub async fn parse_flats() {
+pub async fn parse_flats(district: String) {
     let mut last_page: i32 = 0;
     let mut page_number = 1;
     let mut reached_end = false;
@@ -16,11 +16,13 @@ pub async fn parse_flats() {
         if reached_end {
             break;
         }
-        let base_url: &str = "https://www.ss.com/en/real-estate/flats/riga/centre/sell/page";
+        let url = format!(
+            "https://www.ss.com/en/real-estate/flats/riga/{}/sell/page{}.html",
+            district, page_number
+        );
 
-        let main_url = format!("{}{}.html", base_url, page_number);
         // println!("Page number: {} - {}", page_number, last_page);
-        let mut res = client.get(main_url).send().await.unwrap();
+        let res = client.get(url).send().await.unwrap();
 
         let raw_html = match res.status() {
             StatusCode::OK => res.text().await.unwrap(),
@@ -31,37 +33,42 @@ pub async fn parse_flats() {
         let main_pages_selector = Selector::parse("form#filter_frm div.td2").unwrap();
         let individual_page_index_selector = Selector::parse("a").unwrap();
 
-        let first_main_pages_selector = document.select(&main_pages_selector).next().unwrap();
+        let is_one_page_district = find_first_main_page_element(&document, &main_pages_selector);
+        if !is_one_page_district {
+            let first_main_pages_selector = document.select(&main_pages_selector).next().unwrap();
 
-        // Iterate over all the pages
-        let mut pages_iterator = first_main_pages_selector
-            .select(&individual_page_index_selector)
-            .enumerate()
-            .peekable();
+            // Iterate over all the pages
+            let mut pages_iterator = first_main_pages_selector
+                .select(&individual_page_index_selector)
+                .enumerate()
+                .peekable();
 
-        let mut pen_ultimate_page: i32 = 0;
+            let mut pen_ultimate_page: i32 = 0;
 
-        while let Some((index, page)) = pages_iterator.next() {
-            if index == 0 {
-                continue; // Skip the first iteration
-            }
-
-            let page_string: String = page.text().collect::<String>();
-
-            let page_numeric = match parse_string_to_int(page_string) {
-                Ok(value) => value,
-                Err(_) => pen_ultimate_page,
-            };
-
-            if pages_iterator.peek().is_none() {
-                if pen_ultimate_page < last_page {
-                    reached_end = true;
-                    break;
+            while let Some((index, page)) = pages_iterator.next() {
+                if index == 0 {
+                    continue; // Skip the first iteration
                 }
-                last_page = pen_ultimate_page;
-                break; // Stop the loop before the last iteration
+
+                let page_string: String = page.text().collect::<String>();
+
+                let page_numeric = match parse_string_to_int(page_string) {
+                    Ok(value) => value,
+                    Err(_) => pen_ultimate_page,
+                };
+
+                if pages_iterator.peek().is_none() {
+                    if pen_ultimate_page < last_page {
+                        reached_end = true;
+                        break;
+                    }
+                    last_page = pen_ultimate_page;
+                    break; // Stop the loop before the last iteration
+                }
+                pen_ultimate_page = page_numeric;
             }
-            pen_ultimate_page = page_numeric;
+        } else {
+            reached_end = true;
         }
         // Select the second tbody element (index 1)
         if let Some(tbody_element) = document.select(&main_table_selector).nth(1) {
@@ -115,17 +122,21 @@ pub async fn parse_flats() {
         }
         page_number += 1;
     }
-    let saved_json = save_to_local_json_file(flats);
+    let saved_json = save_to_local_json_file(flats, district);
     match saved_json {
         Ok(_) => println!("Saved to local json file"),
         Err(e) => println!("Error saving to local json file: {}", e),
     }
 }
 
-fn save_to_local_json_file(flat_data: Vec<Flat>) -> Result<(), Box<dyn std::error::Error>> {
+fn save_to_local_json_file(
+    flat_data: Vec<Flat>,
+    district_name: String,
+) -> Result<(), Box<dyn std::error::Error>> {
     // Create the directory if it doesn't exist
-    fs::create_dir_all("scraper/data")?;
-    let file = File::create("scraper/data/data.json")?;
+    let path = format!("data/{}.json", district_name);
+    fs::create_dir_all("data")?;
+    let file = File::create(path)?;
     let mut writer = BufWriter::new(file);
     serde_json::to_writer(&mut writer, &flat_data)?;
     writer.flush()?;
@@ -136,4 +147,8 @@ fn parse_string_to_int(string_value: String) -> Result<i32, Box<dyn std::error::
     let parsed_i32: i32 = string_value.parse()?;
 
     Ok(parsed_i32)
+}
+
+fn find_first_main_page_element(document: &Html, main_pages_selector: &Selector) -> bool {
+    document.select(main_pages_selector).next().is_none()
 }
