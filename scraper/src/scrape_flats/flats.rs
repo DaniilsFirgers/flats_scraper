@@ -1,9 +1,9 @@
 use super::structs::Flat;
+use crate::scrape_flats::utils::{
+    find_first_main_page_element, parse_string_to_int, save_to_local_json_file,
+};
 use reqwest::StatusCode;
 use scraper::{Html, Selector};
-use std::fs::File;
-use std::fs::{self};
-use std::io::{BufWriter, Write};
 
 pub async fn parse_flats(district: String) {
     let mut last_page: i32 = 0;
@@ -121,28 +121,4 @@ pub async fn parse_flats(district: String) {
         Ok(_) => println!("Saved to local json file"),
         Err(e) => println!("Error saving to local json file: {}", e),
     }
-}
-
-fn save_to_local_json_file(
-    flat_data: Vec<Flat>,
-    district_name: String,
-) -> Result<(), Box<dyn std::error::Error>> {
-    // Create the directory if it doesn't exist
-    let path = format!("data/{}.json", district_name);
-    fs::create_dir_all("data")?;
-    let file = File::create(path)?;
-    let mut writer = BufWriter::new(file);
-    serde_json::to_writer(&mut writer, &flat_data)?;
-    writer.flush()?;
-    Ok(())
-}
-
-fn parse_string_to_int(string_value: String) -> Result<i32, Box<dyn std::error::Error>> {
-    let parsed_i32: i32 = string_value.parse()?;
-
-    Ok(parsed_i32)
-}
-
-fn find_first_main_page_element(document: &Html, main_pages_selector: &Selector) -> bool {
-    document.select(main_pages_selector).next().is_none()
 }
