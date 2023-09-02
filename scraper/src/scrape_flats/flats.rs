@@ -99,22 +99,16 @@ pub async fn parse_flats(district: String) {
                         .to_string()
                         .replace("\n", ".");
 
-                    if index == 2 {
-                        flat.set_description(field);
-                    } else if index == 3 {
-                        flat.set_street(field);
-                    } else if index == 4 {
-                        flat.set_rooms(field);
-                    } else if index == 5 {
-                        flat.set_square(field);
-                    } else if index == 6 {
-                        flat.set_floor(field);
-                    } else if index == 7 {
-                        flat.set_series(field);
-                    } else if index == 8 {
-                        flat.set_square_m_price(field);
-                    } else if index == 9 {
-                        flat.set_price(field);
+                    match index {
+                        2 => flat.set_description(field),
+                        3 => flat.set_street(field),
+                        4 => flat.set_rooms(field),
+                        5 => flat.set_square(field),
+                        6 => flat.set_floor(field),
+                        7 => flat.set_series(field),
+                        8 => flat.set_square_m_price(field),
+                        9 => flat.set_price(field),
+                        _ => (),
                     }
                 }
                 flats.push(flat);
