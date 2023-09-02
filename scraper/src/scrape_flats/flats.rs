@@ -82,36 +82,8 @@ pub async fn parse_flats(district: String) {
                     continue; // Skip the first and last rows
                 }
 
-                // Select the <td> elements inside the current <tr>
-                let td_selector = Selector::parse("td").unwrap();
-
-                let mut flat: Flat = Flat::new();
-
-                for (index, td_element) in tr_element.select(&td_selector).enumerate() {
-                    // Check if the <td> element contains an <a> element
-                    if index == 0 || index == 1 {
-                        continue;
-                    }
-                    let field = td_element
-                        .text()
-                        .collect::<String>()
-                        .trim()
-                        .to_string()
-                        .replace("\n", ".");
-
-                    match index {
-                        2 => flat.set_description(field),
-                        3 => flat.set_street(field),
-                        4 => flat.set_rooms(field),
-                        5 => flat.set_square(field),
-                        6 => flat.set_floor(field),
-                        7 => flat.set_series(field),
-                        8 => flat.set_square_m_price(field),
-                        9 => flat.set_price(field),
-                        _ => (),
-                    }
-                }
-                flats.push(flat);
+                let new_flat = construct_flat_data(tr_element);
+                flats.push(new_flat);
             }
         }
         page_number += 1;
@@ -121,4 +93,37 @@ pub async fn parse_flats(district: String) {
         Ok(_) => println!("Saved to local json file"),
         Err(e) => println!("Error saving to local json file: {}", e),
     }
+}
+
+fn construct_flat_data(tr_element: &scraper::element_ref::ElementRef) -> Flat {
+    // Select the <td> elements inside the current <tr>
+    let td_selector = Selector::parse("td").unwrap();
+
+    let mut flat: Flat = Flat::new();
+
+    for (index, td_element) in tr_element.select(&td_selector).enumerate() {
+        // Check if the <td> element contains an <a> element
+        if index == 0 || index == 1 {
+            continue;
+        }
+        let field = td_element
+            .text()
+            .collect::<String>()
+            .trim()
+            .to_string()
+            .replace("\n", ".");
+
+        match index {
+            2 => flat.set_description(field),
+            3 => flat.set_street(field),
+            4 => flat.set_rooms(field),
+            5 => flat.set_square(field),
+            6 => flat.set_floor(field),
+            7 => flat.set_series(field),
+            8 => flat.set_square_m_price(field),
+            9 => flat.set_price(field),
+            _ => (),
+        }
+    }
+    return flat;
 }
