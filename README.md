@@ -17,6 +17,7 @@ This scraper is designed to parse flats advertisments in Riga from [ss.com](http
 
 TODO's
 
-- [ ] Add Docker
+- [x] Add Docker
 - [ ] Add option to save file in csv format
 - [ ] Add other cities
+- [ ] Add GUI
