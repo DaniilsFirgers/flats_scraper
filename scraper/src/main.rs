@@ -7,10 +7,6 @@ use utils::read_user_input;
 #[tokio::main]
 async fn main() {
     let district_name = read_user_input();
-    let start_time = Instant::now();
     flats::parse_flats(district_name).await;
-    let end_time = Instant::now();
-    let elapsed_time = end_time - start_time;
-
-    println!("Elapsed time: {:?}", elapsed_time);
+    println!("Successfully scraped data for: {}", district_name);
 }
