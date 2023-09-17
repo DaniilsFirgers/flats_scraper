@@ -32,14 +32,28 @@ pub fn read_user_input() -> String {
 pub fn save_to_local_json_file(
     flat_data: Vec<Flat>,
     district_name: String,
+    local_dev: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Create the directory if it doesn't exist
-    let path = format!("data/{}.json", district_name);
-    fs::create_dir_all("data")?;
-    let file = File::create(path)?;
-    let mut writer = BufWriter::new(file);
-    serde_json::to_writer(&mut writer, &flat_data)?;
-    writer.flush()?;
+    match local_dev {
+        true => {
+            let path = format!("data/{}.json", district_name);
+            fs::create_dir_all("data")?;
+            let file = File::create(path)?;
+            let mut writer = BufWriter::new(file);
+            serde_json::to_writer(&mut writer, &flat_data)?;
+            writer.flush()?;
+        }
+        false => {
+            let path = format!("/app/data/{}.json", district_name);
+            println!("Path: {:#?}", &flat_data);
+            fs::create_dir_all("/app/data")?;
+            let file = File::create(path)?;
+            let mut writer = BufWriter::new(file);
+            serde_json::to_writer(&mut writer, &flat_data)?;
+            writer.flush()?;
+        }
+    }
     Ok(())
 }
 

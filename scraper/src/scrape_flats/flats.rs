@@ -5,7 +5,7 @@ use crate::scrape_flats::utils::{
 use reqwest::StatusCode;
 use scraper::{Html, Selector};
 
-pub async fn parse_flats(district: String) {
+pub async fn parse_flats(district: String, local_dev: bool) {
     let mut last_page: i32 = 0;
     let mut page_number = 1;
     let mut reached_end = false;
@@ -88,7 +88,7 @@ pub async fn parse_flats(district: String) {
         }
         page_number += 1;
     }
-    let saved_json = save_to_local_json_file(flats, district);
+    let saved_json = save_to_local_json_file(flats, district, local_dev);
     match saved_json {
         Ok(_) => println!("Saved to local json file"),
         Err(e) => println!("Error saving to local json file: {}", e),

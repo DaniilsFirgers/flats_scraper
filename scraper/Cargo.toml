@@ -15,4 +15,4 @@ tokio = {version = "1.15", features = ["full"]}
 
 [[bin]]
 name = "ads-scraper-app"
-path = "scraper/src/main.rs"
+path = "scraper/src/all_districts.rs"
