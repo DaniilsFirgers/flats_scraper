@@ -6,4 +6,4 @@ services:
     image: ads-scraper-app
     container_name: ads-scraper
     volumes:
-      - ./scraper:/app/scraper 
+      - ./data :/app/data

@@ -46,8 +46,8 @@ pub fn save_to_local_json_file(
         }
         false => {
             let path = format!("/app/data/{}.json", district_name);
-            println!("Path: {:#?}", &flat_data);
-            fs::create_dir_all("/app/data")?;
+            println!("Path: {:#?}", path);
+            // fs::create_dir_all("/app/data")?;
             let file = File::create(path)?;
             let mut writer = BufWriter::new(file);
             serde_json::to_writer(&mut writer, &flat_data)?;
