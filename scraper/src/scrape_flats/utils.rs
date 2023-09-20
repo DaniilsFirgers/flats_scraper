@@ -46,7 +46,6 @@ pub fn save_to_local_json_file(
         }
         false => {
             let path = format!("/app/data/{}.json", district_name);
-            println!("Path: {:#?}", path);
             // fs::create_dir_all("/app/data")?;
             let file = File::create(path)?;
             let mut writer = BufWriter::new(file);

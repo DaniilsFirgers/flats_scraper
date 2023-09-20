@@ -9,15 +9,7 @@ This scraper is designed to parse flats advertisments in Riga from [ss.com](http
 **How to use?**
 
 1. Clone the repository.
-2. Install [Rust and Cargo](https://www.rust-lang.org/tools/install).
-3. Navigate to scrape_flats folder in a terminal and write `cargo run` command.
-4. Choose a district from suggested list, then see the a json file with full list of ads for the district saved in /data folder (name of json file is the district name).
+2. In root directory run docker with `docker-compose up --build` or `docker compose up` and `docker-compose build`
+3. In root directory under folder data see all files with full list of ads for the district (name of json file is the district name).
 
 ---
-
-TODO's
-
-- [x] Add Docker
-- [ ] Add option to save file in csv format
-- [ ] Add other cities
-- [ ] Add GUI

@@ -90,8 +90,8 @@ pub async fn parse_flats(district: String, local_dev: bool) {
     }
     let saved_json = save_to_local_json_file(flats, district, local_dev);
     match saved_json {
-        Ok(_) => println!("Saved to local json file"),
         Err(e) => println!("Error saving to local json file: {}", e),
+        Ok(_) => (),
     }
 }
 
